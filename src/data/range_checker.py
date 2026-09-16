@@ -11,6 +11,17 @@ class RangeChecker:
         """
         Evaluates a lab measurement and returns 'Low', 'Normal', or 'High'.
         """
+        # Normalize gender input (M/F -> Male/Female)
+        if gender:
+            g = str(gender).strip().upper()
+            if g in ["M", "MALE"]:
+                gender = "Male"
+            elif g in ["F", "FEMALE"]:
+                gender = "Female"
+            else:
+                gender = "all"
+        else:
+            gender = "all"
         # Find matching parameter
         matches = self.df_ref[self.df_ref['parameter'].str.lower() == parameter.strip().lower()]
         
