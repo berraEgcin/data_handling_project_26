@@ -1,0 +1,56 @@
+DESCRIPTION,CODE,UNITS,patient_count,record_count,patient_coverage_%,status
+Platelets [#/volume] in Blood by Automated count,777-3,10*3/uL,108,296,100.0,Well-Covered
+Platelet distribution width [Entitic volume] in Blood by Automated count,32207-3,fL,108,209,100.0,Well-Covered
+Erythrocytes [#/volume] in Blood by Automated count,789-8,10*6/uL,108,296,100.0,Well-Covered
+Hematocrit [Volume Fraction] of Blood by Automated count,4544-3,%,108,287,100.0,Well-Covered
+Erythrocyte [DistWidth] in Blood by Automated count,788-0,fL,108,209,100.0,Well-Covered
+Hemoglobin [Mass/volume] in Blood,718-7,g/dL,108,296,100.0,Well-Covered
+MCHC [Entitic Mass/volume] in Red Blood Cells by Automated count,786-4,g/dL,108,296,100.0,Well-Covered
+Leukocytes [#/volume] in Blood by Automated count,6690-2,10*3/uL,108,296,100.0,Well-Covered
+Platelet [Entitic mean volume] in Blood by Automated count,32623-1,fL,108,209,100.0,Well-Covered
+MCV [Entitic mean volume] in Red Blood Cells by Automated count,787-2,fL,108,296,100.0,Well-Covered
+Patient Health Questionnaire 2 item (PHQ-2) total score [Reported],55758-7,{score},85,699,78.7,Well-Covered
+Chloride [Moles/volume] in Blood,2069-3,mmol/L,43,721,39.81,Well-Covered
+Potassium [Moles/volume] in Blood,6298-4,mmol/L,43,721,39.81,Well-Covered
+Carbon dioxide  total [Moles/volume] in Blood,20565-8,mmol/L,43,721,39.81,Well-Covered
+Sodium [Moles/volume] in Blood,2947-0,mmol/L,43,721,39.81,Well-Covered
+Calcium [Mass/volume] in Blood,49765-1,mg/dL,43,721,39.81,Well-Covered
+Glucose [Mass/volume] in Blood,2339-0,mg/dL,43,721,39.81,Well-Covered
+Urea nitrogen [Mass/volume] in Blood,6299-2,mg/dL,43,719,39.81,Well-Covered
+Hemoglobin A1c/Hemoglobin.total in Blood,4548-4,%,39,720,36.11,Well-Covered
+Patient Health Questionnaire 9 item (PHQ-9) total score [Reported],44261-6,{score},26,48,24.07,Sparse
+Glucose [Mass/volume] in Urine by Test strip,5792-7,mg/dL,24,567,22.22,Sparse
+Leukocyte esterase [Presence] in Urine by Test strip,5799-2,{nominal},24,567,22.22,Sparse
+Hemoglobin [Presence] in Urine by Test strip,5794-3,{nominal},24,567,22.22,Sparse
+Patient Health Questionnaire-9: Modified for Teens total score [Reported.PHQ.Teen],89204-2,{score},23,75,21.3,Sparse
+Erythrocytes [#/area] in Urine sediment by Microscopy high power field,13945-1,/[HPF],18,21,16.67,Sparse
+Leukocytes [#/area] in Urine sediment by Microscopy high power field,5821-4,/[HPF],18,21,16.67,Sparse
+Potassium [Moles/volume] in Serum or Plasma,2823-3,mmol/L,16,544,14.81,Sparse
+Sodium [Moles/volume] in Serum or Plasma,2951-2,mmol/L,16,544,14.81,Sparse
+Urea nitrogen [Mass/volume] in Serum or Plasma,3094-0,mg/dL,16,544,14.81,Sparse
+Chloride [Moles/volume] in Serum or Plasma,2075-0,mmol/L,16,544,14.81,Sparse
+Glucose [Mass/volume] in Serum or Plasma,2345-7,mg/dL,16,544,14.81,Sparse
+Calcium [Mass/volume] in Serum or Plasma,17861-6,mg/dL,16,544,14.81,Sparse
+Carbon dioxide  total [Moles/volume] in Serum or Plasma,2028-9,mmol/L,16,544,14.81,Sparse
+Erythrocyte [DistWidth] in Blood by Automated count,788-0,%,10,87,9.26,Sparse
+Hematocrit [Volume Fraction] of Blood by calculation,20570-8,%,9,9,8.33,Sparse
+INR in Platelet poor plasma by Coagulation assay,6301-6,{INR},8,45,7.41,Sparse
+Glucose [Presence] in Urine by Test strip,25428-4,{nominal},6,546,5.56,Sparse
+Bicarbonate [Moles/volume] in Arterial blood,1960-4,mmol/L,4,38,3.7,Sparse
+Bicarbonate [Moles/volume] in Venous blood,14627-4,mmol/L,4,4,3.7,Sparse
+Carbon dioxide  total [Moles/volume] in Venous blood,2027-1,mmol/L,4,4,3.7,Sparse
+Carbon dioxide [Partial pressure] in Arterial blood,2019-8,mm[Hg],4,38,3.7,Sparse
+Carbon dioxide [Partial pressure] in Venous blood,2021-4,mm[Hg],4,4,3.7,Sparse
+Ferritin [Mass/volume] in Serum or Plasma,2276-4,ug/L,3,42,2.78,Sparse
+Hemoglobin.gastrointestinal.lower [Presence] in Stool by Immunoassay --1st specimen,57905-2,ng/mL,3,3,2.78,Sparse
+Urea Nitrogen [Mass/volume] in Blood,6299-2,mg/dL,2,2,1.85,Sparse
+Basophils/Leukocytes in Blood by Automated count,706-2,%,2,13,1.85,Sparse
+Eosinophils/Leukocytes in Blood by Automated count,713-8,%,2,13,1.85,Sparse
+Hemoglobin [Presence] in Urine by Test strip,5794-3,{presence},2,2,1.85,Sparse
+Neutrophils/Leukocytes in Blood by Automated count,770-8,%,2,13,1.85,Sparse
+Monocytes/Leukocytes in Blood by Automated count,5905-5,%,2,13,1.85,Sparse
+Lymphocytes/Leukocytes in Blood by Automated count,736-9,%,2,13,1.85,Sparse
+Glucose [Presence] in Urine by Test strip,25428-4,{presence},2,2,1.85,Sparse
+Leukocyte esterase [Presence] in Urine by Test strip,5799-2,{presence},2,2,1.85,Sparse
+Fibrin D-dimer FEU [Mass/volume] in Platelet poor plasma,48065-7,ug/mL,1,5,0.93,Sparse
+Are you covered by health insurance or some other kind of health care plan [PhenX],63513-6,{nominal},1,7,0.93,Sparse
