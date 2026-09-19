@@ -39,16 +39,16 @@ def build_datasets():
     df_obs = pd.read_csv(obs_path)
     df_pat = pd.read_csv(pat_path)
 
-    # Filter observations to target LOINC codes
+    # Filter observations
     df_obs = df_obs[df_obs['CODE'].isin(CODE_TO_PARAM.keys())].copy()
     df_obs['parameter'] = df_obs['CODE'].map(CODE_TO_PARAM)
     df_obs['VALUE_NUM'] = pd.to_numeric(df_obs['VALUE'], errors='coerce')
     df_obs = df_obs.dropna(subset=['VALUE_NUM', 'ENCOUNTER'])
 
-    # Patient demographics map
+    # Patient map
     pat_map = df_pat.set_index('Id')[['GENDER', 'BIRTHDATE']].to_dict('index')
 
-    # Group by encounter to form single lab panels
+    # Group by encounter
     encounters = df_obs.groupby('ENCOUNTER')
     samples = []
 
@@ -57,35 +57,49 @@ def build_datasets():
         pat_info = pat_map.get(patient_id, {'GENDER': 'all', 'BIRTHDATE': '1980-01-01'})
         gender = pat_info.get('GENDER', 'all')
         
-        # Clinical Interpretation logic
         abnormal_findings = []
         lab_panel = {}
+        
+        # Track which parameters we've already processed
+        seen_params = set()
+        skip_sample = False  # Biyolojik olarak imkansız değerler için kontrol bayrağı
 
         for _, row in group.iterrows():
             param = row['parameter']
             val = float(row['VALUE_NUM'])
             unit = row['UNITS']
-            status = checker.evaluate(param, val, gender=gender)
+            
+            if param == "HbA1c" and val < 3.5:
+                skip_sample = True
+                break  
 
             lab_panel[param] = f"{val} {unit}"
 
-            if status != "Normal":
-                abnormal_findings.append({
-                    "parameter": param,
-                    "value": val,
-                    "unit": unit,
-                    "flag": status
-                })
+            if param not in seen_params:
+                status = checker.evaluate(param, val, gender=gender)
+                if status != "Normal":
+                    abnormal_findings.append({
+                        "parameter": param,
+                        "value": val,
+                        "unit": unit,
+                        "flag": status
+                    })
+                seen_params.add(param)
 
-        if not lab_panel:
+        if skip_sample or not lab_panel:
             continue
 
-        # Format input and target output schema
-        input_text = f"Patient Demographics: Gender={gender}. Lab Results: " + ", ".join([f"{k}: {v}" for k, v in lab_panel.items()])
+        input_text = f"Patient Demographics: Gender={gender}. Lab Results: " + ", ".join(
+            [f"{k}: {v}" for k, v in lab_panel.items()]
+        )
         
         target_output = {
             "abnormal_findings": abnormal_findings,
-            "interpretation_summary": f"Identified {len(abnormal_findings)} abnormal parameter(s)." if abnormal_findings else "All tested parameters within normal reference bounds."
+            "interpretation_summary": (
+                f"Identified {len(abnormal_findings)} abnormal parameter(s)."
+                if abnormal_findings
+                else "All tested parameters within normal reference bounds."
+            )
         }
 
         samples.append({
@@ -93,7 +107,7 @@ def build_datasets():
             "output": json.dumps(target_output)
         })
 
-    # Shuffle and split 80 / 10 / 10
+    # Split 80/10/10
     random.seed(42)
     random.shuffle(samples)
 
