@@ -156,7 +156,8 @@ if __name__ == "__main__":
     print("\nGender normalization test:")
     for gender in ["F", "Female", "female", "M", "Male", "male", "all"]:
         result = checker._normalize_gender(gender)
-        print(f"  {gender:8} -> {result:8} {'✓' if result in ['Male', 'Female', 'all'] else '✗'}")
+        status = '[OK]' if result in ['Male', 'Female', 'all'] else '[FAIL]'
+        print(f"  {gender:8} -> {result:8} {status}")
 
     print("\n" + "="*80)
     print("TESTING RANGE EVALUATION")
@@ -183,7 +184,7 @@ if __name__ == "__main__":
         result = checker.evaluate(param, value, gender=gender)
         passed = result == expected
         all_pass = all_pass and passed
-        status = "✓" if passed else "✗"
+        status = "[OK]" if passed else "[FAIL]"
         print(
             f"  {status} {param:15} = {value:6.1f} "
             f"({gender:8}) -> {result:8} "
@@ -192,7 +193,7 @@ if __name__ == "__main__":
 
     print("\n" + "="*80)
     if all_pass:
-        print("✓ ALL TESTS PASSED")
+        print("[OK] ALL TESTS PASSED")
     else:
-        print("✗ SOME TESTS FAILED - CHECK REFERENCE RANGES CSV")
+        print("[FAIL] SOME TESTS FAILED - CHECK REFERENCE RANGES CSV")
     print("="*80)

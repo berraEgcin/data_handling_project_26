@@ -131,14 +131,14 @@ if __name__ == "__main__":
         exp = expected[gender]
         passed = result == exp
         all_pass = all_pass and passed
-        status = "✓" if passed else "✗"
+        status = "[OK]" if passed else "[FAIL]"
         print(f"{status} {gender:8} -> {result:8} (expected: {exp:8})")
 
     print("\n" + "="*80)
     if all_pass:
-        print("✓ GENDER NORMALIZATION FIX SUCCESSFUL")
+        print("[OK] GENDER NORMALIZATION FIX SUCCESSFUL")
     else:
-        print("✗ GENDER NORMALIZATION STILL HAS ISSUES")
+        print("[FAIL] GENDER NORMALIZATION STILL HAS ISSUES")
     print("="*80)
 
     print("\n2. Range Evaluation Test (with fixed gender handling):")
@@ -161,33 +161,33 @@ if __name__ == "__main__":
             result = checker.evaluate(param, value, gender=gender)
             passed = result == expected
             range_pass = range_pass and passed
-            status = "✓" if passed else "✗"
+            status = "[OK]" if passed else "[FAIL]"
             print(
                 f"{status} {param:12} = {value:5.1f} "
                 f"({gender:8}) -> {result:8} "
                 f"(expected: {expected:8})"
             )
         except Exception as e:
-            print(f"✗ {param:12} = {value:5.1f} ({gender:8}) -> ERROR: {e}")
+            print(f"[FAIL] {param:12} = {value:5.1f} ({gender:8}) -> ERROR: {e}")
             range_pass = False
 
     print("\n" + "="*80)
     if range_pass:
-        print("✓ RANGE EVALUATION WITH FIXED GENDER HANDLING WORKS")
+        print("[OK] RANGE EVALUATION WITH FIXED GENDER HANDLING WORKS")
     else:
-        print("✗ RANGE EVALUATION STILL HAS ISSUES")
+        print("[FAIL] RANGE EVALUATION STILL HAS ISSUES")
     print("="*80)
 
     print("\n" + "="*80)
     print("SUMMARY")
     print("="*80)
     if all_pass and range_pass:
-        print("✓✓ ALL TESTS PASSED - FIX IS WORKING!")
+        print("[OK] ALL TESTS PASSED - FIX IS WORKING!")
         print("\nYou can now:")
         print("  1. Replace range_checker.py with range_checker_FIXED.py")
         print("  2. Replace dataset_builder.py with dataset_builder_FIXED.py")
         print("  3. Run: python dataset_builder.py")
         print("  4. Verify dataset quality improved")
     else:
-        print("✗ SOME TESTS FAILED - CHECK REFERENCE RANGES CSV")
+        print("[FAIL] SOME TESTS FAILED - CHECK REFERENCE RANGES CSV")
     print("="*80)
