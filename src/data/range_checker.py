@@ -174,8 +174,8 @@ if __name__ == "__main__":
         ("Erythrocytes", 5.4, "Male", "Normal"),  # Male range is 4.3-5.9
         ("Hemoglobin", 17.0, "Female", "High"),   # Female max is 15.5
         ("Hemoglobin", 17.0, "Male", "Normal"),   # Male range is 13.8-17.2
-        ("Hemoglobin", 12.5, "M", "Normal"),
-        ("Hemoglobin", 12.5, "F", "Low"),
+        ("Hemoglobin", 12.5, "M", "Low"),
+        ("Hemoglobin", 12.5, "F", "Normal"),
     ]
 
     print("\nRange evaluation tests:")

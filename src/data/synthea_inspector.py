@@ -6,7 +6,7 @@ TARGET_TERMS = [
     "glucose", "urea", "bun", "sodium", "potassium", "chloride", 
     "calcium", "carbon dioxide", "bicarbonate", "hemoglobin", 
     "hematocrit", "leukocyte", "white blood", "platelet", 
-    "erythrocyte", "red blood", "mcv", "ferritin", "tsh", "alt"
+    "erythrocyte", "red blood", "mcv", "ferritin", "tsh", "alt",
 ]
 
 def run_inspection():

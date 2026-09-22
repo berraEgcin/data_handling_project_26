@@ -28,6 +28,9 @@ CODE_TO_PARAM = {
     "789-8": "Erythrocytes",
     "787-2": "MCV",
     "4548-4": "HbA1c",
+    "1742-6": "ALT",
+    "2276-4": "Ferritin",
+    "3016-3": "TSH",
 }
 
 
