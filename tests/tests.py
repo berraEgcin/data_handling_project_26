@@ -18,7 +18,7 @@ for name in ['train', 'val', 'test']:
     dataset_viol = 0
     dataset_total = 0
     
-    with open(f'data/processed/{name}.jsonl', 'r') as f:
+    with open(f'data/processed/{name}.jsonl', 'r', encoding='utf-8') as f:
         for line in f:
             record = json.loads(line)
             output = json.loads(record['output'])

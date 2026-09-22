@@ -1,4 +1,3 @@
-import pandas as pd
 from range_checker import RangeChecker
 
 # Test the gender mapping fix

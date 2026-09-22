@@ -14,93 +14,11 @@ Root cause:
   against the original gender strings instead of normalized ones.
 """
 
-import pandas as pd
+import sys
 import os
 
-
-class RangeChecker:
-
-    def __init__(self, ref_file="config/reference_ranges.csv"):
-        if not os.path.exists(ref_file):
-            raise FileNotFoundError(
-                f"Reference range config not found: {ref_file}"
-            )
-        self.df_ref = pd.read_csv(ref_file)
-
-    def _normalize_gender(self, gender: str) -> str:
-        """
-        FIXED VERSION: Normalize gender input to standard format.
-        
-        The key fix is checking lowercase against lowercase consistently.
-        """
-        if not gender:
-            return "all"
-
-        # Convert to lowercase for consistent comparison
-        gender_clean = str(gender).strip().lower()
-
-        # Now check against lowercase versions of each case
-        if gender_clean == "m":
-            return "Male"
-        elif gender_clean == "f":
-            return "Female"
-        elif gender_clean == "male":
-            return "Male"
-        elif gender_clean == "female":
-            return "Female"
-        else:
-            return "all"
-
-    def evaluate(self, parameter: str, value: float, gender: str = "all") -> str:
-        """Simplified for testing"""
-        param_clean = parameter.strip().lower()
-        matches = self.df_ref[
-            self.df_ref["parameter"].str.strip().str.lower() == param_clean
-        ]
-
-        if matches.empty:
-            return "Normal"
-
-        gender_normalized = self._normalize_gender(gender)
-
-        # Try gender-specific first
-        if gender_normalized != "all":
-            gender_matches = matches[
-                matches["gender"]
-                .astype(str)
-                .str.strip()
-                .str.lower()
-                == gender_normalized.lower()
-            ]
-            if not gender_matches.empty:
-                row = gender_matches.iloc[0]
-            else:
-                all_matches = matches[
-                    matches["gender"]
-                    .astype(str)
-                    .str.strip()
-                    .str.lower()
-                    == "all"
-                ]
-                row = all_matches.iloc[0] if not all_matches.empty else matches.iloc[0]
-        else:
-            all_matches = matches[
-                matches["gender"]
-                .astype(str)
-                .str.strip()
-                .str.lower()
-                == "all"
-            ]
-            row = all_matches.iloc[0] if not all_matches.empty else matches.iloc[0]
-
-        low = float(row["lower_bound"])
-        high = float(row["upper_bound"])
-
-        if value < low:
-            return "Low"
-        elif value > high:
-            return "High"
-        return "Normal"
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src', 'data'))
+from range_checker import RangeChecker
 
 
 # Test the fix

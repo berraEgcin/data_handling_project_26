@@ -2,7 +2,7 @@ import os
 import json
 import random
 import pandas as pd
-from sklearn.model_selection import GroupShuffleSplit
+from collections import defaultdict
 from range_checker import RangeChecker
 
 # Mapping Synthea descriptions to standard parameter keys
@@ -84,6 +84,7 @@ def build_datasets():
     skipped_impossible_hba1c = 0
     skipped_empty = 0
     skipped_misaligned = 0  # encounters that actually merge multiple real visits
+    skipped_pediatric = 0
 
     for enc_id, group in encounters:
         patient_id = group['PATIENT'].iloc[0]
@@ -92,6 +93,21 @@ def build_datasets():
             {'GENDER': 'all', 'BIRTHDATE': '1980-01-01'}
         )
         gender = pat_info.get('GENDER', 'all')
+        birthdate_str = pat_info.get('BIRTHDATE', '1980-01-01')
+
+        # Calculate age at encounter
+        enc_date_str = str(group['DATE'].iloc[0])
+        try:
+            birth_year = int(birthdate_str[:4])
+            enc_year = int(enc_date_str[:4])
+            age_at_enc = enc_year - birth_year
+        except:
+            age_at_enc = 40  # fallback
+
+        # Skip pediatric patients since our reference ranges are for adults only
+        if age_at_enc < 18:
+            skipped_pediatric += 1
+            continue
 
         # If a parameter has multiple DIFFERENT values in this encounter,
         # this group is actually multiple real visits merged together.
@@ -124,7 +140,7 @@ def build_datasets():
 
             lab_panel[param] = f"{val} {unit}"
 
-            status = checker.evaluate(param, val, gender=gender)
+            status = checker.evaluate(param, val, gender=gender, age=age_at_enc)
             if status != "Normal":
                 abnormal_findings.append({
                     "parameter": param,
@@ -141,7 +157,9 @@ def build_datasets():
         input_text = (
             f"Patient Demographics: Gender={gender}. "
             f"Lab Results: "
-        ) + ", ".join([f"{k}: {v}" for k, v in lab_panel.items()])
+        ) + ", ".join([f"{k}: {v}" for k, v in sorted(lab_panel.items())])
+
+        abnormal_findings.sort(key=lambda x: x["parameter"])
 
         target_output = {
             "abnormal_findings": abnormal_findings,
@@ -160,13 +178,13 @@ def build_datasets():
 
     print(f"\nData filtering:")
     print(f"  Samples created: {len(samples):,}")
+    print(f"  Skipped (pediatric < 18yo): {skipped_pediatric:,}")
     print(f"  Skipped (misaligned encounter - multiple visits merged): {skipped_misaligned:,}")
     print(f"  Implausible HbA1c values dropped (value-level, not record-level): {skipped_impossible_hba1c:,}")
     print(f"  Skipped (empty panel): {skipped_empty:,}")
 
     # --- Patient-level split, NOT row-level random.shuffle. ---
     # Group samples by patient
-    from collections import defaultdict
     patient_samples = defaultdict(list)
     for s in samples:
         patient_samples[s['patient_id']].append(s)
@@ -202,7 +220,7 @@ def build_datasets():
 
     for name, data in splits.items():
         out_path = f"data/processed/{name}.jsonl"
-        with open(out_path, "w") as f:
+        with open(out_path, "w", encoding="utf-8") as f:
             for item in data:
                 clean_item = {"input": item["input"], "output": item["output"]}
                 f.write(json.dumps(clean_item) + "\n")
@@ -216,8 +234,6 @@ def build_datasets():
     assert not (train_p & test_p), "LEAKAGE: train/test share patients!"
     assert not (val_p & test_p), "LEAKAGE: val/test share patients!"
     print("Patient-level split verified: no patient overlap.")
-
-    n_total = len(samples)
 
     print(f"\n" + "=" * 80)
     print(f"SUMMARY")
