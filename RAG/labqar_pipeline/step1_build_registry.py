@@ -1,33 +1,5 @@
 """
-STEP 1 — Build the master reference-range registry from LabQAR Set_1 / Set_2.
-
-Why this step exists
----------------------
-Set_1.json and Set_2.json are QA *pairs* (Question/Answer), not a clean
-knowledge base. Before anything can be embedded or retrieved, we need one
-row per test/specimen/gender/age/category/condition combination with typed,
-numeric fields. That row is what the RAG corpus will be built from in Step 2.
-
-Key findings baked into this script (verified directly against your files,
-not assumed):
-1. Set_1['Answer'] is a *string* ("70-200", "<0.1", "21.7"). Set_2['reference_range']
-   already stores the same bounds as numeric lower_bound/upper_bound. We use
-   Set_2's numeric field as the source of truth for numbers, and use the
-   shared Question text (identical structure in both files) as the source of
-   truth for metadata (parameter, specimen, gender, age_group, category,
-   condition, unit).
-2. Set_2['Answer'] (the High/Normal/Low letter) is NOT always consistent with
-   Set_2['reference_range']. Recomputing the label from the bounds and the
-   value stated in the question finds 20/550 (3.6%) mismatches — this script
-   reproduces that check and writes out the corrected labels
-   (see step1_set2_corrected.json), which Step 5 uses instead of the raw
-   'Answer' field as evaluation ground truth.
-3. One-sided ranges ("<0.1" / lower_bound is null, or ">17.4" / upper_bound is
-   null) are kept as genuinely open-ended. We do NOT invent a synthetic
-   opposite bound (e.g. upper = lower * 2) the way the original generation
-   code did — that fabrication is exactly what produces some of the 20
-   mismatches above. An open bound means "no upper/lower limit is defined";
-   the checker in Step 4 treats it as such.
+Step1: LabQar is QA format so we should reformat it for RAG 
 """
 
 import json
@@ -38,13 +10,6 @@ DATA_DIR = Path(__file__).parent / "data"
 OUT_DIR = Path(__file__).parent / "artifacts"
 OUT_DIR.mkdir(exist_ok=True)
 
-# ---------------------------------------------------------------------------
-# 1. Parse the structured fields out of the (identical) Question text shared
-#    by Set_1 and Set_2. Independent single-quote-delimited regexes are used
-#    instead of one long pattern, because the age/category/condition clauses
-#    appear in varying order and are otherwise easy to mis-capture.
-# ---------------------------------------------------------------------------
-
 RE_PARAM = re.compile(r"lab test '([^']+)'")
 RE_UNIT = re.compile(r"measuring in '([^']+)'")
 RE_SPECIMEN = re.compile(r"in Specimen '([^']+)'")
@@ -53,10 +18,6 @@ RE_AGE = re.compile(r"and '([^']+)'")
 RE_CATEGORY = re.compile(r"in the category '([^']+)'")
 RE_CONDITION = re.compile(r"with the condition '([^']+)'")
 # LabQAR renders this clause with *curly* quotes ('reference type '..'')
-# even though every other clause uses straight quotes -- a separate regex
-# is needed or this silently never matches. Currently only the "Cholesterol"
-# / Total-category rows (Desirable / Borderline high / High) use this field,
-# but the pattern is written generally in case future rows add more.
 RE_REFTYPE = re.compile(r"reference type [\u2018']([^\u2019']+)[\u2019']")
 
 
@@ -64,7 +25,6 @@ def parse_question(q: str) -> dict:
     def grab(pattern):
         m = pattern.search(q)
         return m.group(1) if m else None
-
     return {
         "parameter": grab(RE_PARAM),
         "unit": grab(RE_UNIT),
@@ -81,16 +41,13 @@ def range_type(lower, upper):
     if lower is not None and upper is not None:
         return "two_sided"
     if lower is not None and upper is None:
-        return "lower_only"  # e.g. ">17.4" -- only a floor is defined
+        return "lower_only" 
     if lower is None and upper is not None:
-        return "upper_only"  # e.g. "<0.1"  -- only a ceiling is defined
+        return "upper_only"
     return "undefined"
 
 
 def classify(value, lower, upper):
-    """Ground-truth classifier used both to build the registry and to
-    recompute Set_2 labels. No fabricated bounds -- an undefined side of
-    the range simply can never trigger that flag."""
     if lower is not None and value < lower:
         return "Low"
     if upper is not None and value > upper:
@@ -142,17 +99,12 @@ def main():
     with open(OUT_DIR / "step1_reference_registry.json", "w", encoding="utf-8") as f:
         json.dump(registry_rows, f, indent=2, ensure_ascii=False)
 
-    # Also a flat CSV, for parity with your existing reference_ranges.csv shape
     import csv
     with open(OUT_DIR / "step1_reference_registry.csv", "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=list(registry_rows[0].keys()))
         writer.writeheader()
         writer.writerows(registry_rows)
 
-    # -----------------------------------------------------------------
-    # 2. Recompute Set_2 gold labels from reference_range + the value
-    #    stated in the question, and diff against the raw Answer letter.
-    # -----------------------------------------------------------------
     val_pattern = re.compile(r"is (?:'([0-9.]+)'|([0-9.]+))\.")
     corrected, mismatches = [], []
 
@@ -192,7 +144,6 @@ def main():
     for row in mismatches[:5]:
         print(f"  ID {row['ID']}: value={row['value']} range=[{row['lower_bound']},{row['upper_bound']}] "
               f"raw='{row['raw_label']}' corrected='{row['corrected_label']}'")
-    print(f"  ... full list in step1_set2_corrected_labels.json")
 
     print(f"\nWrote:")
     print(f"  artifacts/step1_reference_registry.json/.csv  ({len(registry_rows)} rows)")

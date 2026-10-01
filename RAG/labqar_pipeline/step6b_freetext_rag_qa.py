@@ -1,34 +1,4 @@
-"""
-STEP 6b — Classic retrieve-then-generate RAG QA.
-
-Step 4/6 together already form a RAG pipeline for the pipeline's actual
-production use case (a fine-tuned extraction model produces clean fields ->
-deterministic checker decides -> LLM explains the decision). This file adds
-the more literal, general-purpose RAG pattern on top of the same index,
-for the case that pipeline doesn't cover: an open-ended free-text question
-with no structured extraction step in front of it at all
-(e.g. "what's a healthy fasting glucose range for an adult, and what if
-mine came back at 110?").
-
-Flow: embed the question -> semantic search the vector DB (Step 3c, via
-the hybrid retriever's free-text path) -> pass the top-k retrieved LabQAR
-passages to Claude as context -> Claude answers grounded ONLY in that
-context, explicitly instructed to say so if the retrieved passages don't
-answer the question (rather than falling back on parametric knowledge,
-which would defeat the point of retrieval-grounding for a medical-adjacent
-use case).
-
-This is deliberately a separate, smaller function from step4/step6 --
-merging them would blur the distinction the rest of this pipeline is built
-around: Step 4 make a decision from a NUMBER using EXACT retrieval, this
-file ANSWERS A QUESTION using SEMANTIC retrieval. Different inputs,
-different retrieval strategy, different failure modes -- worth evaluating
-separately (see step5c_evaluate_rag.py's retrieval section for the semantic
-side of this).
-"""
-
 import os
-
 from step3d_hybrid_retriever import HybridRetriever
 
 SYSTEM_PROMPT = """You are a lab-reference-range Q&A assistant. You are
@@ -70,9 +40,6 @@ class RagQA:
         context = _format_context(hits)
 
         if self._client is None:
-            # No API key -- return the retrieved context itself rather than
-            # a fabricated answer, so this still demonstrates the retrieval
-            # half of the workflow without an LLM call.
             answer_text = ("[No GOOGLE_API_KEY set -- showing retrieved context only, "
                             "no generation step run]\n" + context)
         else:

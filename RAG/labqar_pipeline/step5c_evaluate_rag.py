@@ -1,50 +1,3 @@
-"""
-STEP 5c — RAG evaluation: retrieval AND generated output, as the brief asks
-for explicitly, not just "does the app run".
-
-Two separate things get measured here, because they can fail independently
-and a single end-to-end pass/fail number would hide which one broke:
-
-  A. RETRIEVAL evaluation (semantic vs lexical, on free-text queries)
-     -----------------------------------------------------------------
-     step5_evaluate.py already measures structured (exact-match) retrieval
-     on Set_1's templated questions -- that's the right test for that
-     component, but it's not a test of the embeddings/vector DB at all
-     (see step5b's docstring for why). Here, on the free-text paraphrases
-     from step5b, we measure:
-       - Accuracy@1 / Accuracy@3 : did the correct LabQAR row appear in the
-         top-1 / top-3 semantic search results?
-       - MRR (mean reciprocal rank): rewards getting the right row ranked
-         near the top even when it's not #1.
-     ...and we compare semantic (embeddings) against the OLD lexical
-     TF-IDF-char-ngram method from step3_retriever.py on the exact same
-     queries, so "embeddings help here" is a measured claim, not an
-     assumption. This is also the direct evidence for the "justify your
-     technical choices" requirement: the numbers below are the
-     justification for using embeddings over pure lexical fuzzy-matching.
-
-  B. GENERATION evaluation (Step 6's LLM explanations)
-     ---------------------------------------------------
-     There's no human-written gold explanation to compare against, so this
-     is NOT a similarity-to-reference metric (BLEU/ROUGE would be
-     meaningless here with no reference text). Instead, two automatic,
-     rule-based groundedness checks -- appropriate because the generation
-     step is deliberately constrained (Step 6's system prompt: explain a
-     given verdict, don't re-derive it):
-       - verdict_consistency: does the generated text avoid contradicting
-         the Low/Normal/High verdict it was given? (naive keyword check for
-         the opposite status words)
-       - numeric_groundedness: do the numbers the explanation states match
-         the retrieved reference bounds (within rounding), rather than
-         being invented? Any number in the text that doesn't correspond to
-         the retrieved bounds/value is flagged as a potential hallucination.
-     If you want a richer generation metric later, the natural next step is
-     an LLM-as-judge pass (have a second Claude call score faithfulness
-     1-5) -- left out here to keep this evaluation script runnable without
-     burning API calls every run; see the comment in `evaluate_generation`
-     for where to add it.
-"""
-
 import json
 import re
 from pathlib import Path
@@ -56,14 +9,8 @@ from step6_llm_explain import Explainer
 
 ART_DIR = Path(__file__).parent / "artifacts"
 
-
-# ---------------------------------------------------------------------------
 # A. Retrieval evaluation
-# ---------------------------------------------------------------------------
-
 def _lexical_baseline_search(structured_retriever: ReferenceRangeRetriever, query: str, top_k: int):
-    """The OLD method (step3's TF-IDF char n-gram fuzzy fallback), run
-    directly on free text, as the comparison point for the semantic search."""
     matches = structured_retriever._fuzzy_param_match(query, top_k=top_k)
     return [name for name, _score in matches]
 
@@ -109,30 +56,13 @@ def evaluate_retrieval(top_k: int = 3):
     print("=" * 70)
     print("RETRIEVAL EVALUATION")
     print("=" * 70)
-    template_scores = run(template_queries, "Template queries (parameter name embedded verbatim -- "
-                                             "sanity check only, NOT a real semantic test)")
-    hard_scores = run(hard_queries, "Hard queries (hand-written synonyms/paraphrases, "
-                                     "NO literal parameter-name overlap -- this is the real test)")
+    template_scores = run(template_queries, "sanity check")
+    hard_scores = run(hard_queries, "Hard queries")
 
     if hybrid.embedder.backend == "tfidf_svd_fallback":
-        print("\nNOTE: semantic numbers above used the offline TF-IDF+SVD fallback "
-              "embedder (no internet in this environment). Because that fallback is "
-              "ITSELF lexical under the hood (built from the same character n-grams as "
-              "the 'lexical' baseline, just dimensionality-reduced), it does not show "
-              "the real advantage a pretrained sentence-transformers model has on the "
-              "hard/paraphrase set -- on the template set it can even lose to raw TF-IDF, "
-              "since SVD throws away some of the exact substring signal that raw TF-IDF "
-              "exploits directly. Re-run this file in Colab after "
-              "`pip install sentence-transformers chromadb` for the numbers that "
-              "actually support 'embeddings help with paraphrase' -- expect the gap to "
-              "open up specifically on the hard set above, which is the one that matters.")
     return {"template": template_scores, "hard": hard_scores}
 
-
-# ---------------------------------------------------------------------------
 # B. Generation evaluation
-# ---------------------------------------------------------------------------
-
 NUM_RE = re.compile(r"-?\d+\.?\d*")
 STATUS_WORDS = {
     "High": ["high", "elevated", "above"],
@@ -142,10 +72,6 @@ STATUS_WORDS = {
 
 
 def _verdict_consistency(explanation: str, status: str) -> bool:
-    """True if the explanation doesn't use language belonging to a
-    DIFFERENT status than the one it was given (naive keyword check --
-    good enough to catch a generation that ignored its instructions, not
-    a substitute for human review)."""
     text = explanation.lower()
     other_statuses = [s for s in STATUS_WORDS if s != status]
     for other in other_statuses:
@@ -156,9 +82,6 @@ def _verdict_consistency(explanation: str, status: str) -> bool:
 
 
 def _numeric_groundedness(explanation: str, result: dict, value: float, tolerance=0.05):
-    """Every number mentioned in the explanation should correspond to
-    either the measured value or the retrieved lower/upper bound (within a
-    small tolerance for rounding). Returns (grounded: bool, unmatched: list)."""
     known = [v for v in (value, result.get("lower_bound"), result.get("upper_bound")) if v is not None]
     found = [float(x) for x in NUM_RE.findall(explanation)]
     unmatched = []
@@ -173,7 +96,7 @@ def evaluate_generation(n_cases: int = 20, seed: int = 42):
     rng = random.Random(seed)
 
     checker = RangeCheckerRAG()
-    explainer = Explainer()  # uses GOOGLE_API_KEY if set, else the template fallback
+    explainer = Explainer()
 
     registry = json.loads((ART_DIR / "step1_reference_registry.json").read_text(encoding="utf-8"))
     two_sided = [r for r in registry if r["lower_bound"] is not None and r["upper_bound"] is not None]
@@ -182,8 +105,6 @@ def evaluate_generation(n_cases: int = 20, seed: int = 42):
     consistent, grounded, results_log = 0, 0, []
     for row in sample:
         mid = (row["lower_bound"] + row["upper_bound"]) / 2
-        # nudge the value outside the range half the time, so we exercise
-        # High/Low explanations too, not only Normal
         value = row["upper_bound"] * 1.3 if rng.random() < 0.5 else mid
 
         result = checker.evaluate(row["parameter"], value, specimen=row["specimen"],
@@ -203,7 +124,7 @@ def evaluate_generation(n_cases: int = 20, seed: int = 42):
     n = len(sample)
     print("\n" + "=" * 70)
     print(f"GENERATION EVALUATION -- Step 6 explanations (n={n}, LLM backend="
-          f"{'live API' if explainer._client else 'template fallback (no ANTHROPIC_API_KEY set)'})")
+          f"{'live API' if explainer._client else 'template fallback)'})")
     print("=" * 70)
     print(f"Verdict-consistent:   {consistent}/{n} ({100*consistent/n:.1f}%)")
     print(f"Numerically grounded: {grounded}/{n} ({100*grounded/n:.1f}%)")
@@ -214,9 +135,6 @@ def evaluate_generation(n_cases: int = 20, seed: int = 42):
             print(f"  {f['parameter']} = {f['value']:.2f} -> {f['status']}: {f['explanation']!r}")
             if f["unmatched_numbers"]:
                 print(f"    unmatched numbers: {f['unmatched_numbers']}")
-    # To go further: add an LLM-as-judge pass here, e.g. a second Explainer
-    # call asking Claude to rate 1-5 how faithful `explanation` is to
-    # `result`, and report the mean score alongside the two checks above.
     return results_log
 
 
