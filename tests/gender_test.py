@@ -1,15 +1,5 @@
 """
-Test script to verify gender normalization bug is fixed.
-
-The bug was:
-  F        -> Female   ✓
-  Female   -> all      ✗ (should be Female)
-  female   -> all      ✗ (should be Female)
-  M        -> Male     ✓
-  Male     -> all      ✗ (should be Male)
-  male     -> all      ✗ (should be Male)
-
-Root cause:
+Problem:
   The _normalize_gender() method was checking lowercase versions
   against the original gender strings instead of normalized ones.
 """
@@ -19,7 +9,6 @@ import os
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src', 'data'))
 from range_checker import RangeChecker
-
 
 # Test the fix
 if __name__ == "__main__":
@@ -100,12 +89,7 @@ if __name__ == "__main__":
     print("SUMMARY")
     print("="*80)
     if all_pass and range_pass:
-        print("[OK] ALL TESTS PASSED - FIX IS WORKING!")
-        print("\nYou can now:")
-        print("  1. Replace range_checker.py with range_checker_FIXED.py")
-        print("  2. Replace dataset_builder.py with dataset_builder_FIXED.py")
-        print("  3. Run: python dataset_builder.py")
-        print("  4. Verify dataset quality improved")
+        print("[OK] ALL TESTS PASSED")
     else:
         print("[FAIL] SOME TESTS FAILED - CHECK REFERENCE RANGES CSV")
     print("="*80)

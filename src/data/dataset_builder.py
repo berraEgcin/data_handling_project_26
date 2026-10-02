@@ -35,19 +35,6 @@ CODE_TO_PARAM = {
 
 
 def build_datasets():
-    """
-    Build training datasets from Synthea observations.
-
-    Process:
-    1. Load raw Synthea data (observations.csv, patients.csv)
-    2. Filter to target LOINC codes
-    3. Group by encounter (single lab panel)
-    4. Evaluate each parameter against reference ranges
-    5. Create input/output pairs for fine-tuning
-    6. Split into train/val/test (80/10/10), patient-grouped
-    7. Save as JSONL files
-    """
-
     obs_path = "data/raw/observations.csv"
     pat_path = "data/raw/patients.csv"
 
@@ -95,7 +82,6 @@ def build_datasets():
         gender = pat_info.get('GENDER', 'all')
         birthdate_str = pat_info.get('BIRTHDATE', '1980-01-01')
 
-        # Calculate age at encounter
         enc_date_str = str(group['DATE'].iloc[0])
         try:
             birth_year = int(birthdate_str[:4])
@@ -104,23 +90,17 @@ def build_datasets():
         except:
             age_at_enc = 40  # fallback
 
-        # Skip pediatric patients since our reference ranges are for adults only
+        # skip children
         if age_at_enc < 18:
             skipped_pediatric += 1
             continue
 
-        # If a parameter has multiple DIFFERENT values in this encounter,
-        # this group is actually multiple real visits merged together.
-        # Picking "first" or "last" value would still misalign input vs
-        # output, so the only safe fix is to skip the whole encounter.
+        # If a parameter has multiple DIFFERENT values in this encounter, this group is actually multiple real visits merged together.
         value_counts_per_param = group.groupby('parameter')['VALUE_NUM'].nunique()
         if (value_counts_per_param > 1).any():
             skipped_misaligned += 1
             continue
 
-        # Each parameter now has exactly one value, so duplicate LOINC
-        # codes (e.g. "Glucose in Blood" + "in Serum/Plasma") are safe
-        # to drop since they'll share the same value.
         group = group.drop_duplicates(subset=['parameter', 'VALUE_NUM'])
 
         abnormal_findings = []
@@ -131,9 +111,7 @@ def build_datasets():
             val = float(row['VALUE_NUM'])
             unit = row['UNITS']
 
-            # HbA1c < 3.5% is physiologically impossible (known Synthea
-            # diabetes-module glitch, confirmed via investigate_hba1c.py).
-            # Skip only this VALUE, not the whole record.
+            # HbA1c < 3.5% is impossible, skip only this VALUE, not the whole record.
             if param == "HbA1c" and val < 3.5:
                 skipped_impossible_hba1c += 1
                 continue
@@ -149,7 +127,6 @@ def build_datasets():
                     "flag": status
                 })
 
-        # Skip only if NOTHING is left after the HbA1c filter (rare).
         if not lab_panel:
             skipped_empty += 1
             continue
@@ -171,7 +148,7 @@ def build_datasets():
         }
 
         samples.append({
-            "patient_id": patient_id,  # needed for patient-level split below
+            "patient_id": patient_id,
             "input": input_text,
             "output": json.dumps(target_output)
         })
@@ -183,8 +160,6 @@ def build_datasets():
     print(f"  Implausible HbA1c values dropped (value-level, not record-level): {skipped_impossible_hba1c:,}")
     print(f"  Skipped (empty panel): {skipped_empty:,}")
 
-    # --- Patient-level split, NOT row-level random.shuffle. ---
-    # Group samples by patient
     patient_samples = defaultdict(list)
     for s in samples:
         patient_samples[s['patient_id']].append(s)
@@ -226,7 +201,6 @@ def build_datasets():
                 f.write(json.dumps(clean_item) + "\n")
         print(f"  Saved {len(data):,} samples -> {out_path}")
 
-    # Fail loudly if leakage ever creeps back in, instead of failing silently.
     train_p = set(s['patient_id'] for s in splits['train'])
     val_p = set(s['patient_id'] for s in splits['val'])
     test_p = set(s['patient_id'] for s in splits['test'])
